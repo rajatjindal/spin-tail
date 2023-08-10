@@ -33,7 +33,7 @@ func init() {
 	rootCmd.Flags().StringVar(&cli.appName, "app-name", "", "app name for which you want to run tail")
 	rootCmd.MarkFlagRequired("app-name")
 
-	rootCmd.Flags().StringVar(&cli.envName, "env-name", "", "env name to use for reading token")
+	rootCmd.Flags().StringVar(&cli.envName, "environment-name", "", "env name to use for reading token")
 }
 
 func (cli *CLI) run() error {
@@ -47,9 +47,17 @@ func (cli *CLI) run() error {
 		return fmt.Errorf("failed to find token %v", err)
 	}
 
+	transport := &retryTransport{
+		envName: envName,
+		base:    http.DefaultTransport,
+		token:   token,
+	}
+
 	fc := &client{
-		token:      token,
-		httpclient: &http.Client{Timeout: 15 * time.Second},
+		httpclient: &http.Client{
+			Timeout:   15 * time.Second,
+			Transport: transport,
+		},
 	}
 
 	channelId, err := fc.getChannelId(cli.appName)

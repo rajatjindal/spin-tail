@@ -28,7 +28,6 @@ type AppsResponse struct {
 
 type client struct {
 	httpclient *http.Client
-	token      string
 }
 
 func (c *client) getChannelId(appName string) (string, error) {
@@ -84,8 +83,6 @@ func (c *client) getLogs(channelId string) ([]string, error) {
 }
 
 func (c *client) do(req *http.Request) ([]byte, error) {
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
-
 	resp, err := c.httpclient.Do(req)
 	if err != nil {
 		return nil, err

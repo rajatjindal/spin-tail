@@ -6,17 +6,20 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 )
 
-type TokenFile struct {
-	URL   string `json:"url"`
-	Token string `json:"token"`
+type Token struct {
+	URL          string    `json:"url"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"`
+	Expiration   time.Time `json:"expiration"`
 }
 
-func getToken(envName string) (string, error) {
-	tokenFile, err := tokenFile(runtime.GOOS, envName)
+func getToken(envName string) (*Token, error) {
+	tokenFile, err := getTokenFile(runtime.GOOS, envName)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	raw, err := os.ReadFile(tokenFile)
@@ -24,16 +27,16 @@ func getToken(envName string) (string, error) {
 		panic(err)
 	}
 
-	data := &TokenFile{}
+	data := &Token{}
 	err = json.Unmarshal(raw, data)
 	if err != nil {
 		panic(err)
 	}
 
-	return data.Token, nil
+	return data, nil
 }
 
-func tokenFile(goos, envName string) (string, error) {
+func getTokenFile(goos, envName string) (string, error) {
 	switch goos {
 	case "darwin":
 		return filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "fermyon", fmt.Sprintf("%s.json", envName)), nil
@@ -44,4 +47,18 @@ func tokenFile(goos, envName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("%s os not supported", goos)
+}
+
+func saveNewToken(envName string, token *Token) error {
+	tokenFile, err := getTokenFile(runtime.GOOS, envName)
+	if err != nil {
+		return err
+	}
+
+	raw, err := json.Marshal(token)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(tokenFile, raw, 0644)
 }
